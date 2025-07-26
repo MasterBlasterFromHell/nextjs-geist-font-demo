@@ -1,0 +1,193 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  cpf           String    @unique
+  phone         String
+  addresses     Address[]
+  bookings      Booking[]
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Admin {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String
+  role          AdminRole @default(ADMIN)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Laboratory {
+  id              String                      @id @default(cuid())
+  name            String
+  description     String?
+  cnpj            String                      @unique
+  email           String
+  phone           String
+  website         String?
+  isActive        Boolean                     @default(true)
+  collectionPosts CollectionPostLaboratory[]
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+}
+
+model CollectionPostLaboratory {
+  id               String         @id @default(cuid())
+  collectionPostId String
+  collectionPost   CollectionPost @relation(fields: [collectionPostId], references: [id])
+  laboratoryId     String
+  laboratory       Laboratory     @relation(fields: [laboratoryId], references: [id])
+  createdAt        DateTime       @default(now())
+
+  @@unique([collectionPostId, laboratoryId])
+}
+
+model ExamCategory {
+  id              String                      @id @default(cuid())
+  name            String                      @unique
+  description     String?
+  isActive        Boolean                     @default(true)
+  collectionPosts CollectionPostExamCategory[]
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+}
+
+model CollectionPostExamCategory {
+  id               String         @id @default(cuid())
+  collectionPostId String
+  collectionPost   CollectionPost @relation(fields: [collectionPostId], references: [id])
+  examCategoryId   String
+  examCategory     ExamCategory   @relation(fields: [examCategoryId], references: [id])
+  createdAt        DateTime       @default(now())
+
+  @@unique([collectionPostId, examCategoryId])
+}
+
+model Subscription {
+  id               String           @id @default(cuid())
+  collectionPostId String
+  collectionPost   CollectionPost   @relation(fields: [collectionPostId], references: [id])
+  planType         SubscriptionPlan
+  price            Decimal
+  startDate        DateTime
+  endDate          DateTime
+  isActive         Boolean          @default(true)
+  paymentStatus    PaymentStatus    @default(PENDING)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model CollectionPost {
+  id                    String                      @id @default(cuid())
+  name                  String
+  cnpj                  String                      @unique
+  email                 String                      @unique
+  password              String
+  phone                 String
+  description           String?
+  laboratories          CollectionPostLaboratory[]
+  examCategories        CollectionPostExamCategory[]
+  addresses             Address[]
+  exams                 Exam[]
+  bookings              Booking[]
+  subscriptions         Subscription[]
+  rating                Float                       @default(0)
+  totalReviews          Int                         @default(0)
+  totalRevenue          Decimal                     @default(0)
+  isActive              Boolean                     @default(true)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+}
+
+model Exam {
+  id                String         @id @default(cuid())
+  name              String
+  description       String
+  price             Decimal
+  duration          Int // in minutes
+  collectionPostId  String
+  collectionPost    CollectionPost @relation(fields: [collectionPostId], references: [id])
+  bookings          Booking[]
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model Booking {
+  id                String         @id @default(cuid())
+  userId            String
+  user              User           @relation(fields: [userId], references: [id])
+  collectionPostId  String
+  collectionPost    CollectionPost @relation(fields: [collectionPostId], references: [id])
+  examId            String
+  exam              Exam           @relation(fields: [examId], references: [id])
+  scheduledAt       DateTime
+  status            BookingStatus  @default(PENDING)
+  totalPrice        Decimal
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model Address {
+  id                String         @id @default(cuid())
+  street            String
+  number            String
+  complement        String?
+  neighborhood      String
+  city              String
+  state             String
+  zipCode           String
+  latitude          Float?
+  longitude         Float?
+  userId            String?
+  user              User?          @relation(fields: [userId], references: [id])
+  collectionPostId  String?
+  collectionPost    CollectionPost?  @relation(fields: [collectionPostId], references: [id])
+  isPrimary         Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum AdminRole {
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  SEMESTRAL
+  ANNUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+}
